@@ -1,12 +1,18 @@
+<div align="center">
+
+<img src=".idea/icon.svg" width=64 height=64 />
+
 # allure-store
+
+A flexible and extensible store for reading, writing, and transforming [Allure](https://docs.qameta.io/allure/) test results [^1].
 
 [![npm version](https://img.shields.io/npm/v/allure-store.svg)](https://www.npmjs.com/package/allure-store)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI Status](https://github.com/wix-incubator/allure-store/actions/workflows/ci.yml/badge.svg)](https://github.com/wix-incubator/allure-store/actions)
 
-A flexible and extensible store for reading, writing, and transforming [Allure](https://docs.qameta.io/allure/) test results [^1].
+</div>
 
-## Key Features
+## 🌟 Features
 
 - **Unified API**: Interact with Allure test results, containers, categories, environment, and executor info using a single, simple interface.
 - **Filesystem Integration**: Easily read from and write Allure results in the familiar `allure-results` directory structure.
@@ -14,7 +20,7 @@ A flexible and extensible store for reading, writing, and transforming [Allure](
 - **Result Aggregation**: Merge test containers and results to produce enriched test data for Allure-compatible tools.
 - **Flexible Composition**: Combine multiple data sources or transform results before generating your final Allure report.
 
-## Installation
+## 🚀 Installation
 
 ```bash
 npm install allure-store
@@ -26,7 +32,7 @@ or
 yarn add allure-store
 ```
 
-## Basic Usage
+## 📖 Usage
 
 ### Initializing from a Directory
 
@@ -115,7 +121,7 @@ const customWriter: AllureWriter = {
 
 - **Classes:**
   - `AllureStore`: Main class managing both reading and writing of Allure data.
-  
+
 - **Factory Functions:**
   - `fromConfig(options: AllureStoreConfig): Promise<AllureStore>`
   - `fromDirectory(options: FileSystemAllureWriterConfig): Promise<AllureStore>`
@@ -130,7 +136,7 @@ const customWriter: AllureWriter = {
 - **Data Transformation**: Before generating the final report, read and manipulate test results (e.g., filter out certain tests, add environment details, or group tests differently).
 - **Storage Abstraction**: If your results are stored in a database or remote object storage, implement a custom `AllureReader` and `AllureWriter` to integrate seamlessly.
 
-## Contributing
+## 🌐 Contributing
 
 Contributions are welcome! If you find a bug or have a feature request, please open an issue or submit a pull request.
 
@@ -138,7 +144,7 @@ Contributions are welcome! If you find a bug or have a feature request, please o
 2. Create a new branch for your feature or fix
 3. Submit a PR once you’re ready
 
-## License
+## 📃 License
 
 > [!NOTE]
 > `allure-store` is not affiliated with the official Allure framework, but it aims to provide a compatible and convenient way to handle Allure data.
