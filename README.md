@@ -1,42 +1,48 @@
 <div align="center">
+  <img src=".idea/icon.svg" width="64" height="64" alt="Allure Store logo" />
 
-<img src=".idea/icon.svg" width=64 height=64 />
+  # allure-store
 
-# allure-store
+  A flexible and extensible store for reading, writing, and transforming [Allure](https://docs.qameta.io/allure/) test results [^1].
 
-A flexible and extensible store for reading, writing, and transforming [Allure](https://docs.qameta.io/allure/) test results [^1].
-
-[![npm version](https://img.shields.io/npm/v/allure-store.svg)](https://www.npmjs.com/package/allure-store)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![CI Status](https://github.com/wix-incubator/allure-store/actions/workflows/ci.yml/badge.svg)](https://github.com/wix-incubator/allure-store/actions)
-
+  [![npm version](https://img.shields.io/npm/v/allure-store.svg)](https://www.npmjs.com/package/allure-store)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+  [![CI Status](https://github.com/wix-incubator/allure-store/actions/workflows/ci.yml/badge.svg)](https://github.com/wix-incubator/allure-store/actions)
 </div>
 
-## 🌟 Features
+## Introduction
 
-- **Unified API**: Interact with Allure test results, containers, categories, environment, and executor info using a single, simple interface.
-- **Filesystem Integration**: Easily read from and write Allure results in the familiar `allure-results` directory structure.
-- **Custom Readers/Writers**: Inject your own `AllureReader` and `AllureWriter` implementations to integrate with your preferred storage backends.
-- **Result Aggregation**: Merge test containers and results to produce enriched test data for Allure-compatible tools.
-- **Flexible Composition**: Combine multiple data sources or transform results before generating your final Allure report.
+`allure-store` provides a standardized interface (the **AllureStore**) to:
+
+- Read existing Allure test results from a variety of sources (e.g., local filesystem, remote storage).
+- Write new Allure data (results, categories, environment info, etc.) for downstream consumers or tools.
+- Transform, aggregate, or customize Allure test data before generating a final Allure report.
+
+By abstracting the data access behind `AllureReader` and `AllureWriter` interfaces, `allure-store` makes it simple to plug in custom storage backends, apply custom transformations, or integrate seamlessly into your CI/CD pipeline.
+
+## 🌟 Key Features
+
+- **Unified API**: Interact with Allure test results, containers, categories, environment, and executor info using a single, simple API (`AllureStore`).
+- **Filesystem Integration**: Use built-in utilities to read from/write to a traditional `allure-results` directory.
+- **Custom Integration Points**: Implement `AllureReader` and `AllureWriter` interfaces to read from or write to any storage backend—databases, cloud storage, etc.
+- **Result Aggregation**: Merge parent test containers and child results to produce enriched test data for Allure-compatible tools.
+- **Flexible Composition**: Combine multiple data sources or transform results before finalizing your Allure report.
 
 ## 🚀 Installation
 
+Install with your preferred package manager:
+
 ```bash
 npm install allure-store
-```
-
-or
-
-```bash
+# or
 yarn add allure-store
 ```
 
-## 📖 Usage
+## 📖 Quick Start
 
-### Initializing from a Directory
+### Reading Results from a Directory
 
-If you already have generated Allure results in a directory (e.g. `allure-results`), you can create a store directly:
+If you have an existing `allure-results` directory (produced by Allure or a tool that supports it):
 
 ```typescript
 import { fromDirectory } from 'allure-store';
@@ -52,30 +58,24 @@ import { fromDirectory } from 'allure-store';
 
   const categories = await store.getCategories();
   console.log('Categories:', categories);
-
-  const environment = await store.getEnvironment();
-  console.log('Environment info:', environment);
 })();
 ```
 
-### Writing Data
+### Writing Data Back
 
-You can also write data back to the Allure results directory (or another destination) using the store’s writer:
+You can also write categories, environment info, or even individual test results:
 
 ```typescript
 import { fromDirectory } from 'allure-store';
 
 (async () => {
-  // You can pass optional 'overwrite' parameter to delete the directory before writing anything
   const store = await fromDirectory('allure-results', { overwrite: true });
 
-  // Add/update environment info
   await store.writeEnvironmentInfo({
     NODE_ENV: 'production',
     SERVICE_URL: 'https://api.example.com',
   });
 
-  // Add new categories
   await store.writeCategories([
     { name: 'Product defects', matchedStatuses: ['failed'] },
     { name: 'Test defects', matchedStatuses: ['broken'] },
@@ -83,12 +83,12 @@ import { fromDirectory } from 'allure-store';
 })();
 ```
 
-### Using a Custom Configuration
+### Using Custom Readers/Writers
 
-If you have a custom `AllureReader` or `AllureWriter`:
+If your results are stored in a different system, implement the `AllureReader` and `AllureWriter` interfaces and provide them to `fromConfig`:
 
 ```typescript
-import { fromConfig, AllureStore, AllureReader, AllureWriter } from 'allure-store';
+import { fromConfig, AllureReader, AllureWriter } from 'allure-store';
 
 const customReader: AllureReader = {
   async getContainerIds() { /* ... */ },
@@ -111,44 +111,28 @@ const customWriter: AllureWriter = {
 (async () => {
   const store = await fromConfig({ reader: customReader, writer: customWriter });
   const results = await store.getAllResults();
-  // ...do something with results...
+  console.log('Custom source results:', results);
 })();
 ```
 
-## API Overview
+## When to Use `allure-store`
 
-**Core Exports:**
+- **Custom CI Integrations**: Integrate Allure data from multiple pipelines or artifact stores, then produce a final Allure report.
+- **Data Transformation**: Filter, enrich, or modify Allure results before final reporting.
+- **Non-File Storage**: If your Allure data isn’t file-based, `allure-store` provides an abstraction to still leverage Allure’s ecosystem.
 
-- **Classes:**
-  - `AllureStore`: Main class managing both reading and writing of Allure data.
+## Additional Documentation
 
-- **Factory Functions:**
-  - `fromConfig(options: AllureStoreConfig): Promise<AllureStore>`
-  - `fromDirectory(options: FileSystemAllureWriterConfig): Promise<AllureStore>`
-
-- **Types & Interfaces:**
-  - `AllureReader`, `AllureWriter`: Protocols for custom readers/writers.
-  - `AllureResult`, `AllureContainer`, `AllureStep`, `AllureParameter`, `Category`, `ExecutorInfo` and other core Allure data types.
-
-## Use Cases
-
-- **Custom CI Integrations**: Use `allure-store` to load Allure results from your CI artifacts and produce a final enriched Allure report.
-- **Data Transformation**: Before generating the final report, read and manipulate test results (e.g., filter out certain tests, add environment details, or group tests differently).
-- **Storage Abstraction**: If your results are stored in a database or remote object storage, implement a custom `AllureReader` and `AllureWriter` to integrate seamlessly.
+- **[API Documentation](./API.md)**: Detailed information on the store design, available methods, and data types.
+- **[CONTRIBUTING.md](./CONTRIBUTING.md)**: Guidelines for contributing to this project.
+- **[CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)**: Our expectations for community interactions.
 
 ## 🌐 Contributing
 
-Contributions are welcome! If you find a bug or have a feature request, please open an issue or submit a pull request.
-
-1. Fork the repository
-2. Create a new branch for your feature or fix
-3. Submit a PR once you’re ready
+Contributions are welcome! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for details on how to get started.
 
 ## 📃 License
 
-> [!NOTE]
-> `allure-store` is not affiliated with the official Allure framework, but it aims to provide a compatible and convenient way to handle Allure data.
-
 This project is licensed under the [MIT License](LICENSE).
 
-[^1]: **Note:** `allure-store` is not affiliated with the official Allure framework, but it aims to provide a compatible and convenient way to handle Allure data.
+[^1]: **Note:** `allure-store` is not affiliated with the official Allure framework. It aims to provide a compatible and convenient way to handle Allure data.
