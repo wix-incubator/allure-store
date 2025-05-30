@@ -1,4 +1,4 @@
-import type { Category, Container, ExecutorInfo, Result } from './types';
+import type { CategoryInput, Container, ExecutorInfo, Result } from './types';
 
 export interface AllureWriter {
   /**
@@ -17,7 +17,7 @@ export interface AllureWriter {
    * Writes the categories to a categories.json file or similar storage.
    * @param categories - An array of categories to be written.
    */
-  writeCategories(categories: Category[]): Promise<void>;
+  writeCategories(categories: CategoryInput[]): Promise<void>;
 
   /**
    * Writes environment information to an environment.properties file or similar storage.

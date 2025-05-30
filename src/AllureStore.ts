@@ -2,7 +2,7 @@ import type { AllureReader } from './AllureReader';
 import type { AllureWriter } from './AllureWriter';
 import { FileAllureReader } from './FileAllureReader';
 import { FileAllureWriter } from './FileAllureWriter';
-import type { Category, Container, ExecutorInfo, Result } from './types';
+import type { Category, CategoryInput, Container, ExecutorInfo, Result } from './types';
 
 export interface AllureStoreConfig {
   reader: AllureReader;
@@ -82,7 +82,7 @@ export class AllureStore {
   //#endregion
 
   //#region Writing methods
-  async writeCategories(categories: Category[]): Promise<void> {
+  async writeCategories(categories: CategoryInput[]): Promise<void> {
     return this.#writer.writeCategories(categories);
   }
 

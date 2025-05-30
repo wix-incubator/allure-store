@@ -5,7 +5,7 @@ import {expect} from 'chai';
 
 import {AllureStore} from './AllureStore';
 import type {AllureWriter} from './AllureWriter';
-import type {Category, Container, Result, Step} from './types';
+import type {Category, CategoryInput, Container, Result, Step} from './types';
 import {TestReader} from './__mocks__/TestReader';
 
 type TestStep = Partial<Step>;
@@ -321,6 +321,44 @@ describe('AllureStore', () => {
       await store.writeCategories(categories);
       expect(writer.writeCategories.mock.calls).to.have.lengthOf(1);
       expect(writer.writeCategories.mock.calls[0].arguments[0]).to.deep.equal(categories);
+    });
+
+    it('calls writer.writeCategories() with RegExp patterns', async () => {
+      const categoriesWithRegexp: CategoryInput[] = [
+        {
+          name: 'Snapshot mismatches',
+          matchedStatuses: ['failed' as const],
+          messageRegex: /.*\btoMatch(?:[A-Za-z]+)?Snapshot\b.*/
+        },
+        {
+          name: 'Timeout errors',
+          matchedStatuses: ['broken' as const],
+          traceRegex: /.*timeout.*/i
+        }
+      ];
+
+      await store.writeCategories(categoriesWithRegexp);
+      expect(writer.writeCategories.mock.calls).to.have.lengthOf(1);
+      expect(writer.writeCategories.mock.calls[0].arguments[0]).to.deep.equal(categoriesWithRegexp);
+    });
+
+    it('calls writer.writeCategories() with mixed string and RegExp patterns', async () => {
+      const mixedCategories: CategoryInput[] = [
+        {
+          name: 'String pattern',
+          matchedStatuses: ['failed' as const],
+          messageRegex: '.*string.*'  // string
+        },
+        {
+          name: 'RegExp pattern',
+          matchedStatuses: ['broken' as const],
+          traceRegex: /.*regexp.*/    // RegExp
+        }
+      ];
+
+      await store.writeCategories(mixedCategories);
+      expect(writer.writeCategories.mock.calls).to.have.lengthOf(1);
+      expect(writer.writeCategories.mock.calls[0].arguments[0]).to.deep.equal(mixedCategories);
     });
 
     it('calls writer.writeEnvironmentInfo()', async () => {

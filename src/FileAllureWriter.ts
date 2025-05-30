@@ -6,7 +6,7 @@ import path from 'node:path';
 import * as properties from 'properties';
 
 import type {AllureWriter} from './AllureWriter';
-import type {Category, Container, ExecutorInfo, Result} from './types';
+import type {CategoryInput, Container, ExecutorInfo, Result} from './types';
 import type { OnErrorHandler} from './errors';
 import {AllureStoreError, resolveOnError} from './errors';
 
@@ -45,7 +45,7 @@ export class FileAllureWriter implements AllureWriter {
     }
   }
 
-  async writeCategories(categories: Category[]): Promise<void> {
+  async writeCategories(categories: CategoryInput[]): Promise<void> {
     const filePath = this.#buildPath('categories.json');
     try {
       await writeJson(filePath, categories, regexpAwareStringifier);
