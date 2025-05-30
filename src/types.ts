@@ -50,14 +50,29 @@ export interface Attachment {
   source: string;
 }
 
-export interface Category {
+/**
+ * Input type for writing categories that allows RegExp objects which will be serialized to strings.
+ * Used by {@link AllureWriter.writeCategories}.
+ */
+export interface CategoryInput {
   name?: string;
   description?: string;
   descriptionHtml?: string;
-  messageRegex?: string;
-  traceRegex?: string;
+  messageRegex?: string | RegExp;
+  traceRegex?: string | RegExp;
   matchedStatuses?: Status[];
   flaky?: boolean;
+}
+
+/**
+ * Category type that ensures regex fields are strings.
+ *
+ * @inheritDoc
+ * @see {@link CategoryInput} for the input type that allows RegExp objects
+ */
+export interface Category extends CategoryInput {
+  messageRegex?: string;
+  traceRegex?: string;
 }
 
 export interface ExecutorInfo {

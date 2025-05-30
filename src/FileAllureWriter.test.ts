@@ -7,7 +7,7 @@ import { expect } from 'chai';
 
 import { FileAllureWriter } from './FileAllureWriter';
 import { AllureStoreError } from './errors';
-import { type Category, type Container, type Result } from './types';
+import { type Category, type CategoryInput, type Container, type Result } from './types';
 
 async function fileExists(p: string): Promise<boolean> {
   return fs.access(p).then(() => true).catch(() => false);
@@ -85,6 +85,151 @@ describe('FileAllureWriter (no mocks, using filesystem permissions)', () => {
       const content = JSON.parse(await fs.readFile(filePath, 'utf8'));
       expect(content).to.deep.equal(categories);
 
+      expect(errors).to.have.lengthOf(0);
+    });
+
+    it('should write categories with RegExp objects and serialize them to strings', async () => {
+      const errors: unknown[] = [];
+      const onError = (err: unknown) => errors.push(err);
+
+      const writer = new FileAllureWriter({ resultsDirectory: tempDir, overwrite: true, onError });
+      await writer.init();
+
+      const categoriesWithRegexp: CategoryInput[] = [
+        {
+          name: 'Snapshot mismatches',
+          matchedStatuses: ['failed'],
+          messageRegex: /.*\btoMatch(?:[A-Za-z]+)?Snapshot\b.*/
+        },
+        {
+          name: 'Visual regressions',
+          matchedStatuses: ['failed'],
+          traceRegex: /.*\bscreenshot.*/
+        }
+      ];
+
+      await writer.writeCategories(categoriesWithRegexp);
+
+      const filePath = path.join(tempDir, 'categories.json');
+      expect(await fileExists(filePath)).to.be.true;
+
+      const content = JSON.parse(await fs.readFile(filePath, 'utf8'));
+
+      // RegExp objects should be serialized to their source strings
+      expect(content).to.deep.equal([
+        {
+          name: 'Snapshot mismatches',
+          matchedStatuses: ['failed'],
+          messageRegex: String.raw`.*\btoMatch(?:[A-Za-z]+)?Snapshot\b.*`
+        },
+        {
+          name: 'Visual regressions',
+          matchedStatuses: ['failed'],
+          traceRegex: String.raw`.*\bscreenshot.*`
+        }
+      ]);
+
+      expect(errors).to.have.lengthOf(0);
+    });
+
+    it('should handle mixed string and RegExp patterns in categories', async () => {
+      const errors: unknown[] = [];
+      const onError = (err: unknown) => errors.push(err);
+
+      const writer = new FileAllureWriter({ resultsDirectory: tempDir, overwrite: true, onError });
+      await writer.init();
+
+      const mixedCategories: CategoryInput[] = [
+        {
+          name: 'String pattern',
+          matchedStatuses: ['failed'],
+          messageRegex: '.*timeout.*'  // string
+        },
+        {
+          name: 'RegExp pattern',
+          matchedStatuses: ['broken'],
+          traceRegex: /.*\berror\b.*/  // RegExp
+        },
+        {
+          name: 'Both patterns',
+          matchedStatuses: ['failed'],
+          messageRegex: '.*string.*',  // string
+          traceRegex: /.*regexp.*/    // RegExp
+        }
+      ];
+
+      await writer.writeCategories(mixedCategories);
+
+      const filePath = path.join(tempDir, 'categories.json');
+      const content = JSON.parse(await fs.readFile(filePath, 'utf8'));
+
+      expect(content).to.deep.equal([
+        {
+          name: 'String pattern',
+          matchedStatuses: ['failed'],
+          messageRegex: '.*timeout.*'
+        },
+        {
+          name: 'RegExp pattern',
+          matchedStatuses: ['broken'],
+          traceRegex: String.raw`.*\berror\b.*`  // RegExp source converted to string
+        },
+        {
+          name: 'Both patterns',
+          matchedStatuses: ['failed'],
+          messageRegex: '.*string.*',
+          traceRegex: '.*regexp.*'     // RegExp source converted to string
+        }
+      ]);
+
+      expect(errors).to.have.lengthOf(0);
+    });
+
+    it('should handle complex RegExp patterns with flags and special characters', async () => {
+      const errors: unknown[] = [];
+      const onError = (err: unknown) => errors.push(err);
+
+      const writer = new FileAllureWriter({ resultsDirectory: tempDir, overwrite: true, onError });
+      await writer.init();
+
+      const complexCategories: CategoryInput[] = [
+        {
+          name: 'Complex pattern',
+          matchedStatuses: ['failed'],
+          messageRegex: /^error:\s+(.+)\s+at\s+line\s+\d+$/gim  // with flags
+        }
+      ];
+
+      await writer.writeCategories(complexCategories);
+
+      const filePath = path.join(tempDir, 'categories.json');
+      const content = JSON.parse(await fs.readFile(filePath, 'utf8'));
+
+      // Only the source should be serialized, flags are not preserved
+      expect(content).to.deep.equal([
+        {
+          name: 'Complex pattern',
+          matchedStatuses: ['failed'],
+          messageRegex: String.raw`^error:\s+(.+)\s+at\s+line\s+\d+$`
+        }
+      ]);
+
+      expect(errors).to.have.lengthOf(0);
+    });
+
+    it('should handle empty categories array with RegExp support', async () => {
+      const errors: unknown[] = [];
+      const onError = (err: unknown) => errors.push(err);
+
+      const writer = new FileAllureWriter({ resultsDirectory: tempDir, overwrite: true, onError });
+      await writer.init();
+
+      await writer.writeCategories([]);
+
+      const filePath = path.join(tempDir, 'categories.json');
+      const content = JSON.parse(await fs.readFile(filePath, 'utf8'));
+
+      expect(content).to.deep.equal([]);
       expect(errors).to.have.lengthOf(0);
     });
   });
