@@ -56,8 +56,6 @@ export interface Attachment {
  */
 export interface CategoryInput {
   name?: string;
-  description?: string;
-  descriptionHtml?: string;
   messageRegex?: string | RegExp;
   traceRegex?: string | RegExp;
   matchedStatuses?: Status[];
