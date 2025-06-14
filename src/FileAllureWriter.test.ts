@@ -76,7 +76,7 @@ describe('FileAllureWriter (no mocks, using filesystem permissions)', () => {
       const writer = new FileAllureWriter({ resultsDirectory: tempDir, overwrite: true, onError });
       await writer.init();
 
-      const categories: Category[] = [{ name: 'Category1', description: 'desc' }];
+      const categories: Category[] = [{ name: 'Category1' }];
       await writer.writeCategories(categories);
 
       const filePath = path.join(tempDir, 'categories.json');
