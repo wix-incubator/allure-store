@@ -1,22 +1,31 @@
+import fs from 'node:fs/promises';
+
 import type { AllureReader } from './AllureReader';
 import type { AllureWriter } from './AllureWriter';
+import { CompiledAllureReader } from './CompiledAllureReader';
+import { FileReportSource, UrlReportSource, HtmlReportSource, containsHtmlDataCalls, stripFileProtocol } from './CompiledReportSource';
+import type { OnErrorHandler } from './errors';
 import { FileAllureReader } from './FileAllureReader';
 import { FileAllureWriter } from './FileAllureWriter';
 import type { Category, CategoryInput, Container, ExecutorInfo, Result } from './types';
 
 export interface AllureStoreConfig {
   reader: AllureReader;
-  writer: AllureWriter;
+  writer?: AllureWriter;
 }
 
 export interface AllureStoreDirectoryConfig {
   overwrite?: boolean;
-  onError?: ((error: Error) => void) | 'throw' | 'ignore';
+  onError?: OnErrorHandler;
+}
+
+export interface AllureStoreReportConfig {
+  onError?: OnErrorHandler;
 }
 
 export class AllureStore {
   readonly #reader: AllureReader;
-  readonly #writer: AllureWriter;
+  readonly #writer: AllureWriter | undefined;
 
   constructor(config: AllureStoreConfig) {
     this.#reader = config.reader;
@@ -24,7 +33,7 @@ export class AllureStore {
   }
 
   static async fromConfig(config: AllureStoreConfig): Promise<AllureStore> {
-    await Promise.all([config.reader.init?.(), config.writer.init?.()]);
+    await Promise.all([config.reader.init?.(), config.writer?.init?.()]);
     return new AllureStore(config);
   }
 
@@ -32,6 +41,31 @@ export class AllureStore {
     const reader: AllureReader = new FileAllureReader({ resultsDirectory, onError: config.onError });
     const writer: AllureWriter = new FileAllureWriter({ resultsDirectory, onError: config.onError, overwrite: config.overwrite });
     return AllureStore.fromConfig({ reader, writer });
+  }
+
+  static async fromReport(input: string, options: AllureStoreReportConfig = {}): Promise<AllureStore> {
+    const localPath = stripFileProtocol(input);
+
+    if (!localPath.startsWith('http://') && !localPath.startsWith('https://')) {
+      const stat = await fs.stat(localPath).catch(() => null);
+      if (stat?.isDirectory()) {
+        return AllureStore.fromConfig({ reader: new CompiledAllureReader({ source: new FileReportSource(localPath), ...options }) });
+      }
+      if (stat?.isFile()) {
+        return AllureStore.fromConfig({ reader: new CompiledAllureReader({ source: new HtmlReportSource(localPath), ...options }) });
+      }
+      throw new Error(`Cannot resolve report input: ${input}`);
+    }
+
+    const response = await fetch(localPath);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch report: ${response.status} ${response.statusText}`);
+    }
+    const html = await response.text();
+    if (containsHtmlDataCalls(html)) {
+      return AllureStore.fromConfig({ reader: new CompiledAllureReader({ source: new HtmlReportSource(localPath, html), ...options }) });
+    }
+    return AllureStore.fromConfig({ reader: new CompiledAllureReader({ source: new UrlReportSource(localPath), ...options }) });
   }
 
   //#region Reading methods
@@ -83,23 +117,30 @@ export class AllureStore {
 
   //#region Writing methods
   async writeCategories(categories: CategoryInput[]): Promise<void> {
-    return this.#writer.writeCategories(categories);
+    return this.#requireWriter().writeCategories(categories);
   }
 
   async writeEnvironmentInfo(info: Record<string, string>): Promise<void> {
-    return this.#writer.writeEnvironmentInfo(info);
+    return this.#requireWriter().writeEnvironmentInfo(info);
   }
 
   async writeExecutorInfo(info: ExecutorInfo): Promise<void> {
-    return this.#writer.writeExecutorInfo(info);
+    return this.#requireWriter().writeExecutorInfo(info);
   }
 
   async writeResult(result: Result): Promise<void> {
-    return this.#writer.writeResult(result);
+    return this.#requireWriter().writeResult(result);
   }
 
   async writeContainer(container: Container): Promise<void> {
-    return this.#writer.writeContainer(container);
+    return this.#requireWriter().writeContainer(container);
+  }
+
+  #requireWriter(): AllureWriter {
+    if (!this.#writer) {
+      throw new Error('This store is read-only (no writer configured)');
+    }
+    return this.#writer;
   }
   //#endregion
 

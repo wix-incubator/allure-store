@@ -48,6 +48,7 @@ export interface Attachment {
   name: string;
   type: string;
   source: string;
+  size?: number;
 }
 
 /**

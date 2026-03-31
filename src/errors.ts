@@ -14,7 +14,9 @@ export function resolveOnError(onError: OnErrorHandler): (error: Error) => void 
 }
 
 export class AllureStoreError extends Error {
-  constructor(message: string, public readonly cause?: unknown) {
+  override readonly cause?: unknown;
+
+  constructor(message: string, cause?: unknown) {
     super(message, { cause });
     this.name = 'AllureStoreError';
   }
