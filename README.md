@@ -24,6 +24,7 @@ By abstracting the data access behind `AllureReader` and `AllureWriter` interfac
 
 - **Unified API**: Interact with Allure test results, containers, categories, environment, and executor info using a single, simple API (`AllureStore`).
 - **Filesystem Integration**: Use built-in utilities to read from/write to a traditional `allure-results` directory.
+- **Compiled Report Support**: Read compiled Allure2 reports — local directories, HTTP URLs, and single-file HTML reports — via `fromReport`.
 - **Custom Integration Points**: Implement `AllureReader` and `AllureWriter` interfaces to read from or write to any storage backend—databases, cloud storage, etc.
 - **Result Aggregation**: Merge parent test containers and child results to produce enriched test data for Allure-compatible tools.
 - **Flexible Composition**: Combine multiple data sources or transform results before finalizing your Allure report.
@@ -82,6 +83,34 @@ import { fromDirectory } from 'allure-store';
   ]);
 })();
 ```
+
+### Reading a Compiled Allure2 Report
+
+If you have a compiled Allure2 report (the output of `allure generate`), use `fromReport`. It accepts a local directory, a local HTML file, an HTTP(S) URL, or a `file://` URL:
+
+```typescript
+import { fromReport } from 'allure-store';
+
+(async () => {
+  // From a local report directory
+  const store = await fromReport('/path/to/allure-report');
+
+  // From a single-file HTML report
+  const store2 = await fromReport('/path/to/report.html');
+
+  // From a URL (auto-detects multi-file vs single-file)
+  const store3 = await fromReport('https://my-report.example.com/');
+
+  const allResults = await store.getAllResults();
+  console.log('All test results:', allResults.length);
+
+  // Latest results deduplicated by historyId (retries resolved)
+  const latestResults = await store.getLatestResults();
+  console.log('Unique tests:', latestResults.length);
+})();
+```
+
+> **Note:** Compiled reports are read-only. Write operations will throw an error.
 
 ### Using Custom Readers/Writers
 
